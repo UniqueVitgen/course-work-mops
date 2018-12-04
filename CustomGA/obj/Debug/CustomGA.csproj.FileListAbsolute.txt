@@ -1,0 +1,10 @@
+C:\Users\admin\source\repos\CustomGA\CustomGA\obj\Debug\CustomGA.csprojAssemblyReference.cache
+C:\Users\admin\source\repos\CustomGA\CustomGA\obj\Debug\CustomGA.Form1.resources
+C:\Users\admin\source\repos\CustomGA\CustomGA\obj\Debug\CustomGA.Properties.Resources.resources
+C:\Users\admin\source\repos\CustomGA\CustomGA\obj\Debug\CustomGA.csproj.GenerateResource.cache
+C:\Users\admin\source\repos\CustomGA\CustomGA\obj\Debug\CustomGA.csproj.CoreCompileInputs.cache
+C:\Users\admin\source\repos\CustomGA\CustomGA\bin\Debug\CustomGA.exe.config
+C:\Users\admin\source\repos\CustomGA\CustomGA\bin\Debug\CustomGA.exe
+C:\Users\admin\source\repos\CustomGA\CustomGA\bin\Debug\CustomGA.pdb
+C:\Users\admin\source\repos\CustomGA\CustomGA\obj\Debug\CustomGA.exe
+C:\Users\admin\source\repos\CustomGA\CustomGA\obj\Debug\CustomGA.pdb
