@@ -49,6 +49,26 @@ namespace CustomGA
             }
         }
 
+        public static void WriteToFile(int[,] array, string path, WriteModeEnum writeMode)
+        {
+            if (writeMode == WriteModeEnum.NEW)
+            {
+                using (FileStream sw = new FileStream(path, FileMode.Create, FileAccess.Write))
+                {
+                    WriteArrayToFileStream(sw, array);
+                    sw.Close();
+                }
+            }
+            else
+            {
+                using (FileStream sw = new FileStream(path, FileMode.Append, FileAccess.Write))
+                {
+                    WriteArrayToFileStream(sw, array);
+                    sw.Close();
+                }
+            }
+        }
+
         public static void WriteToFile(double[,] array, int iteration, string path, WriteModeEnum writeMode)
         {
             if (writeMode == WriteModeEnum.NEW)
@@ -259,6 +279,22 @@ namespace CustomGA
         }
 
         private static void WriteArrayToFileStream(FileStream sw, double[,] array)
+        {
+            string targetString;
+            for (int i = 0; i < array.GetLength(0); i++)
+            {
+                for (int j = 0; j < array.GetLength(1); j++)
+                {
+                    double value = array[i, j];
+                    targetString = String.Format("{0:0.000} ", value);
+                    WriteStringToFileStream(sw, targetString);
+                }
+                targetString = Environment.NewLine;
+                WriteStringToFileStream(sw, targetString);
+            }
+        }
+
+        private static void WriteArrayToFileStream(FileStream sw, int[,] array)
         {
             string targetString;
             for (int i = 0; i < array.GetLength(0); i++)

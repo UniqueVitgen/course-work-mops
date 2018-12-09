@@ -118,6 +118,16 @@ namespace CustomGA
             }
         }
 
+        public static int[,] Concat(int[,] multiarray1, int[,] multiarray2)
+        {
+            int[,] array3 = new int[multiarray1.GetLength(0) + multiarray2.GetLength(0), multiarray1.GetLength(1)];
+
+            Array.Copy(multiarray1, 0, array3, 0, multiarray1.Length);
+            Array.Copy(multiarray2, 0, array3, multiarray1.Length, multiarray2.Length);
+
+            return array3;
+        }
+
     }
 
     enum WriteModeEnum

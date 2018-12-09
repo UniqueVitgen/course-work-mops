@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Forms.DataVisualization.Charting;
 
 namespace CustomGA
 {
@@ -18,9 +20,22 @@ namespace CustomGA
         public int[,] values { get; set; }
         public double[,] times { get; set; }
         public double[] results { get; set; }
+        public System.Windows.Forms.DataVisualization.Charting.Chart chart1;
+        public System.Windows.Forms.ProgressBar pbAlgo;
+        private System.Windows.Forms.TextBox tbFitness;
+        private System.Windows.Forms.TextBox tbCurrentIteration;
 
-        public GA(int countPopulation, int countChromossomes, int numberIteration, double mutationRate, double minValue, double maxValue)
+        public GA(int countPopulation, int countChromossomes, int numberIteration, double mutationRate, double minValue, double maxValue,
+            System.Windows.Forms.DataVisualization.Charting.Chart chart1, System.Windows.Forms.ProgressBar pbAlgo,
+            System.Windows.Forms.TextBox tbFitness,
+            System.Windows.Forms.TextBox tbCurrentIteration
+            )
         {
+            this.chart1 = chart1;
+            this.pbAlgo = pbAlgo;
+            this.tbFitness = tbFitness;
+            this.tbCurrentIteration = tbCurrentIteration;
+
             this.countPopulation = countPopulation;
             this.countChromossomes = countChromossomes;
             this.countIterations = numberIteration;
@@ -75,10 +90,21 @@ namespace CustomGA
             return results;
         }
 
+        public List<Tuple<int, double>> createResultsWithTupples(int[,] multiArr)
+        {
+            double[] results = createResults(multiArr);
+            List<Tuple<int, double>> list = new List<Tuple<int, double>>();
+            for (int i = 0; i < results.Length; i++)
+            {
+                list.Add(new Tuple<int, double>(i, results[i]));
+            }
+            return list;
+        }
+
         public double[] createResults(int[,] multiArr)
         {
-            double[] results = new double[this.countPopulation];
-            for (int i = 0; i < this.values.GetLength(0); i++)
+            double[] results = new double[multiArr.GetLength(0)];
+            for (int i = 0; i < multiArr.GetLength(0); i++)
             {
                 int[] row = ArrayWorker.GetRow(multiArr, i);
                 double result = calculateTime(row);
@@ -106,8 +132,8 @@ namespace CustomGA
             int[,] children = new int[countPopulation, countChromossomes];
             for (int i = 0; i < (countPopulation / 2); i++)
             {
-                int firstIndex = RandomWorker.GetRandomNumber(r, 0, countPopulation);
-                int lastIndex = RandomWorker.GetRandomNumber(r, firstIndex + 1, countPopulation);
+                int firstIndex = RandomWorker.GetRandomNumber(r, 0, countPopulation -1);
+                int lastIndex = RandomWorker.GetRandomNumber(r, firstIndex + 1, countPopulation -1);
                 int[] parent1 = ArrayWorker.GetRow(parents, firstIndex);
                 int[] parent2 = ArrayWorker.GetRow(parents, lastIndex);
                 int[,] twoChildren = createTwoChildren(parent1, parent2);
@@ -169,25 +195,149 @@ namespace CustomGA
             return children;
         }
 
-        //public int[,] getHalfTheBest(int[,] multiArray)
-        //{
-        //    int[] results = 
-        //}
+        public int[,] doMutation(int[,] multiArray)
+        {
+            FileWorker.WriteToFile(multiArray, "mutation.txt", WriteModeEnum.NEW);
+            Random r = new Random();
+            int RowIndex = RandomWorker.GetRandomNumber(r, 0, multiArray.GetLength(0));
+            int[] row = ArrayWorker.GetRow(multiArray, RowIndex);
+            int firstIndex = RandomWorker.GetRandomNumber(r, 0, row.Length - 1);
+            int lastIndex = RandomWorker.GetRandomNumber(r, firstIndex + 1, row.Length - 1);
+            int temp1 = row[firstIndex];
+            int temp2 = row[lastIndex];
+            row[firstIndex] = temp2;
+            row[lastIndex] = temp1;
+            ArrayWorker.setRow(multiArray, row, RowIndex);
+            FileWorker.AppendTextToFile("mutation.txt", "first - " + firstIndex + ";" + Environment.NewLine);
+            FileWorker.AppendTextToFile("mutation.txt", "last - " + lastIndex + ";" + Environment.NewLine);
+            FileWorker.AppendTextToFile("mutation.txt", Environment.NewLine);
+            FileWorker.WriteToFile(multiArray, "mutation.txt", WriteModeEnum.APPEND);
+            return multiArray;
+        }
+
+        public int[,] getHalfTheBest(int[,] multiArray)
+        {
+            List<Tuple<int, double>> resultsWithIndexes = createResultsWithTupples(multiArray);
+            resultsWithIndexes.Sort((a, b) =>
+            {
+                if(a.Item2 < b.Item2)
+                {
+                    return -1;
+                }
+                else if(a.Item2 == b.Item2)
+                {
+                    return 0;
+                } else
+                {
+                    return 1;
+                }
+            });
+
+            int[] indexes = new int[multiArray.GetLength(0) / 2];
+            int[,] halfTheBestMultiArray = new int[multiArray.GetLength(0) / 2, multiArray.GetLength(1)];
+
+            for(int i = 0; i < indexes.Length; i++)
+            {
+                int indexRow = resultsWithIndexes[i].Item1;
+                int[] bestArray = ArrayWorker.GetRow(multiArray, indexRow);
+                ArrayWorker.setRow(halfTheBestMultiArray, bestArray, i);
+            }
+            return halfTheBestMultiArray;
+
+        }
+
+        public double getTheBest(int[,] multiArray)
+        {
+            List<Tuple<int, double>> resultsWithIndexes = createResultsWithTupples(multiArray);
+            resultsWithIndexes.Sort((a, b) =>
+            {
+                if (a.Item2 < b.Item2)
+                {
+                    return -1;
+                }
+                else if (a.Item2 == b.Item2)
+                {
+                    return 0;
+                }
+                else
+                {
+                    return 1;
+                }
+            });
+            
+            
+            return resultsWithIndexes[0].Item2;
+        }
+
+
+        public void UpdateGraph(int i, double fitness)
+        {
+            //refresh grid config
+            chart1.ChartAreas[0].AxisX.MajorGrid.Enabled = false;
+            chart1.ChartAreas[0].AxisX.MinorGrid.Enabled = false;
+            chart1.ChartAreas[0].AxisY.MajorGrid.LineDashStyle = ChartDashStyle.Dash;
+            chart1.ChartAreas[0].AxisY.Maximum = fitness * 2; //approximate y scale as the values increase/decrease for better visualization
+
+            //add point to graph: i = iteration, fitness = y value
+            chart1.Series[0].Points.AddXY(i, fitness);
+        }
+
+        public void UpdateResultsLabel(int iteration, double fitness)
+        {
+            tbFitness.Text = "" + fitness;
+            tbCurrentIteration.Text = "" + iteration;
+            int percent = (iteration * 100 / (countIterations - 1));
+            pbAlgo.Value = percent;
+        }
+
         public void run()
         {
             int[,] children;
             this.times = createTimes(this.countChromossomes);
             this.values = createValues();
-            this.results = createResults();
-            FileWorker.WriteToFile(times, "log.txt", WriteModeEnum.NEW);
-            FileWorker.WriteToFile(values, results, -1, "log.txt", WriteModeEnum.APPEND);
-            //for(int i = 0; i < countPopulation; i++)
-            //{
+            string filepath = Path.Combine(".", "log_" + DateTime.Now.ToString("yyyy_dd_MMMM_HH_mm_ss") + ".txt");
+            FileWorker.WriteToFile(times, filepath, WriteModeEnum.NEW);
+            this.results = createResults(this.values);
+            Random r = new Random();
+            double randomValue;
+            double bestFitness = getTheBest(this.values);
+            for (int i = 0; i < countIterations; i++)
+            {
+                randomValue = RandomWorker.GenerateRandomNumber(r, 0, 1);
+                this.results = createResults(this.values);
+                FileWorker.WriteToFile(values, results, i, filepath, WriteModeEnum.APPEND);
+                if(bestFitness != 0)
+                {
+                    FileWorker.AppendTextToFile(filepath, "best fintess - " + bestFitness + Environment.NewLine);
+                }
+                // crossing
                 children = createchildren(this.values);
-            double[] childrenResults = createResults(children);
-            FileWorker.WriteToFile(values, results, -1, "parent.txt", WriteModeEnum.NEW);
-            FileWorker.WriteToFile(children, childrenResults, -1, "children.txt", WriteModeEnum.NEW);
-            //}
+
+
+                // mutation
+                if (randomValue < mutationRage)
+                {
+                    this.values = doMutation(this.values);
+                }
+                // next poppulation
+                int[,] halfTheBestChildren = getHalfTheBest(children);
+                int[,] halfTheBestParent = getHalfTheBest(this.values);
+                int[,] nextGen = ArrayWorker.Concat(halfTheBestParent, halfTheBestChildren);
+                this.values = nextGen;
+                bestFitness = getTheBest(this.values);
+                UpdateGraph(i, bestFitness);
+                UpdateResultsLabel(i, bestFitness);
+                //double[] childrenResults = createResults(children);
+                //double[] halfChildrenResults = createResults(halfTheBestChildren);
+                //double[] halfParentResults = createResults(halfTheBestParent);
+                //double[] NextGenResults = createResults(nextGen);
+                //FileWorker.WriteToFile(children, childrenResults, -1, "children.txt", WriteModeEnum.NEW);
+                //FileWorker.WriteToFile(halfTheBestChildren, halfChildrenResults, 0, "children.txt", WriteModeEnum.APPEND);
+                //FileWorker.WriteToFile(values, results, -1, "parent.txt", WriteModeEnum.NEW);
+                //FileWorker.WriteToFile(halfTheBestParent, halfParentResults, 0, "parent.txt", WriteModeEnum.APPEND);
+                //FileWorker.WriteToFile(nextGen, NextGenResults, 0, "next-gen.txt", WriteModeEnum.APPEND);
+                //FileWorker.WriteToFile(children, childrenResults, -1, "children.txt", WriteModeEnum.NEW);
+            }
         }
     }
 }
